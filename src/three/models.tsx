@@ -6,12 +6,14 @@ import { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
+const base = import.meta.env.BASE_URL
+
 export const MODELS = {
-  croissant: '/models/croissant/model.gltf',
-  chocolate: '/models/strawberry_chocolate_cake/model.gltf',
-  zanahoria: '/models/carrot_cake/model.gltf',
-  te: '/models/tea_set_01/model.gltf',
-  tabla: '/models/wooden_cutting_board/model.gltf',
+  croissant: `${base}models/croissant/model.gltf`,
+  chocolate: `${base}models/strawberry_chocolate_cake/model.gltf`,
+  zanahoria: `${base}models/carrot_cake/model.gltf`,
+  te: `${base}models/tea_set_01/model.gltf`,
+  tabla: `${base}models/wooden_cutting_board/model.gltf`,
 } as const
 
 export type ModelId = keyof typeof MODELS
