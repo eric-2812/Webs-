@@ -4,8 +4,9 @@ Web de una pastelería ficticia de Valencia, con React + Vite y escenas 3D en Re
 
 **En vivo:** https://eric-2812.github.io/Webs-/ — se vuelve a desplegar sola en cada push (`.github/workflows/pages.yml` → rama `gh-pages`).
 
-- **Portada**: tarta de chocolate y fresas sobre tabla de madera; se gira arrastrando.
-- **La vitrina**: carta del día; al elegir una pieza cambia el modelo 3D.
+- **Portada**: tarta de chocolate y fresas sobre tabla de madera; al bajar, la tarta se despega de la tabla y gira.
+- **Del horno a la vitrina**: sección fijada en la que los 7 productos desfilan como en una cinta según haces scroll.
+- **La vitrina**: carta por categorías (bollería, tartas, para llevar); al elegir una pieza cambia el modelo 3D, que también gira con el scroll.
 - **Encargos**: eliges tarta y tamaño, la vista 3D se actualiza y el formulario muestra un resguardo (sin backend todavía).
 - **El obrador / Visítanos**: horario del día, horario semanal con el día actual marcado y estado «abierto/cerrado» en vivo.
 

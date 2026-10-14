@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, Suspense, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { ContactShadows, Environment, Lightformer, PresentationControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -6,7 +6,7 @@ import * as THREE from 'three'
 export const prefersReducedMotion =
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-// Solo pintamos cuando el lienzo está a la vista: tres canvases a 60fps no tienen sentido.
+// Solo pintamos cuando el lienzo está a la vista: varios canvases a 60fps no tienen sentido.
 function useInView<T extends Element>() {
   const ref = useRef<T>(null)
   const [inView, setInView] = useState(false)
@@ -19,6 +19,77 @@ function useInView<T extends Element>() {
   }, [])
   return [ref, inView] as const
 }
+
+/* ---------- progreso de scroll ---------- */
+
+/*
+ * Modos de medir el scroll sobre el elemento seguido:
+ *  - through: 0 cuando asoma por abajo, 1 cuando sale por arriba.
+ *  - exit:    0 con el elemento arriba del todo, 1 cuando ya ha salido (portada).
+ *  - pinned:  0..1 mientras una sección alta con contenido sticky está fijada.
+ */
+export type ScrollMode = 'through' | 'exit' | 'pinned'
+
+const TrackCtx = createContext<{ current: HTMLElement | null }>({ current: null })
+
+export function scrollProgress(el: HTMLElement, mode: ScrollMode) {
+  const r = el.getBoundingClientRect()
+  const vh = window.innerHeight
+  const raw =
+    mode === 'pinned'
+      ? -r.top / Math.max(1, r.height - vh)
+      : mode === 'exit'
+        ? -r.top / Math.max(1, r.height)
+        : (vh - r.top) / (vh + r.height)
+  return THREE.MathUtils.clamp(raw, 0, 1)
+}
+
+// Devuelve una ref con el progreso suavizado; se actualiza en cada frame.
+export function useScrollProgress(mode: ScrollMode = 'through', lambda = 6) {
+  const track = useContext(TrackCtx)
+  const p = useRef(-1)
+  useFrame((_, dt) => {
+    const el = track.current
+    if (!el) return
+    const target = scrollProgress(el, mode)
+    p.current = p.current < 0 || prefersReducedMotion ? target : THREE.MathUtils.damp(p.current, target, lambda, dt)
+  })
+  return p
+}
+
+const ease = (t: number) => 1 - Math.pow(1 - t, 3)
+
+// Animación genérica ligada al scroll: giro, elevación, inclinación y entrada en escala.
+export function ScrollRig({
+  mode = 'through',
+  rotate = Math.PI,
+  lift = 0,
+  tilt = 0,
+  enterScale = 0.7,
+  children,
+}: {
+  mode?: ScrollMode
+  rotate?: number
+  lift?: number
+  tilt?: number
+  enterScale?: number
+  children: ReactNode
+}) {
+  const g = useRef<THREE.Group>(null)
+  const p = useScrollProgress(mode)
+  useFrame(() => {
+    if (!g.current || p.current < 0) return
+    const t = p.current
+    const enter = ease(THREE.MathUtils.clamp(t * 2.4, 0, 1))
+    g.current.rotation.y = (t - 0.5) * rotate
+    g.current.rotation.x = tilt * Math.sin(t * Math.PI)
+    g.current.position.y = lift * Math.sin(t * Math.PI)
+    g.current.scale.setScalar(enterScale + (1 - enterScale) * enter)
+  })
+  return <group ref={g}>{children}</group>
+}
+
+/* ---------- utilidades de escena ---------- */
 
 // Giro lento sobre sí mismo, como una tarta en el expositor giratorio.
 function Turntable({ speed = 0.18, children }: { speed?: number; children: ReactNode }) {
@@ -75,6 +146,8 @@ export function Stage({
   target = 0.7,
   spin = 0.18,
   shadowScale = 6,
+  track,
+  controls = true,
   label,
   className,
 }: {
@@ -84,10 +157,20 @@ export function Stage({
   target?: number
   spin?: number
   shadowScale?: number
+  /** id del elemento cuyo scroll anima la escena (por defecto, el propio lienzo) */
+  track?: string
+  controls?: boolean
   label: string
   className?: string
 }) {
   const [ref, inView] = useInView<HTMLDivElement>()
+  const trackRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    trackRef.current = (track && document.getElementById(track)) || ref.current
+  }, [track, ref])
+
+  const scene = <Turntable speed={spin}>{children}</Turntable>
+
   return (
     <div ref={ref} className={className} role="img" aria-label={label}>
       <Canvas
@@ -98,20 +181,26 @@ export function Stage({
         camera={{ position: camera, fov }}
         onCreated={({ camera }) => camera.lookAt(0, target, 0)}
       >
-        <Suspense fallback={null}>
-          <Lighting />
-          <PresentationControls
-            global={false}
-            cursor
-            snap
-            speed={1.4}
-            polar={[-0.15, 0.25]}
-            azimuth={[-Infinity, Infinity]}
-          >
-            <Turntable speed={spin}>{children}</Turntable>
-          </PresentationControls>
-          <ContactShadows position={[0, 0, 0]} opacity={0.42} scale={shadowScale} blur={2.6} far={3} color="#3a2416" />
-        </Suspense>
+        <TrackCtx.Provider value={trackRef}>
+          <Suspense fallback={null}>
+            <Lighting />
+            {controls ? (
+              <PresentationControls
+                global={false}
+                cursor
+                snap
+                speed={1.4}
+                polar={[-0.15, 0.25]}
+                azimuth={[-Infinity, Infinity]}
+              >
+                {scene}
+              </PresentationControls>
+            ) : (
+              scene
+            )}
+            <ContactShadows position={[0, 0, 0]} opacity={0.42} scale={shadowScale} blur={2.6} far={3} color="#3a2416" />
+          </Suspense>
+        </TrackCtx.Provider>
       </Canvas>
     </div>
   )

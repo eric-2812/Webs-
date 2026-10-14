@@ -7,13 +7,19 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
 const base = import.meta.env.BASE_URL
+const url = (dir: string) => `${base}models/${dir}/model.gltf`
 
 export const MODELS = {
-  croissant: `${base}models/croissant/model.gltf`,
-  chocolate: `${base}models/strawberry_chocolate_cake/model.gltf`,
-  zanahoria: `${base}models/carrot_cake/model.gltf`,
-  te: `${base}models/tea_set_01/model.gltf`,
-  tabla: `${base}models/wooden_cutting_board/model.gltf`,
+  croissant: url('croissant'),
+  chocolate: url('strawberry_chocolate_cake'),
+  zanahoria: url('carrot_cake'),
+  te: url('tea_set_01'),
+  tabla: url('wooden_cutting_board'),
+  bollos: url('hamburger_buns'),
+  cesta: url('wicker_basket_01'),
+  jarra: url('jug_01'),
+  limon: url('lemon'),
+  manzana: url('food_apple_01'),
 } as const
 
 export type ModelId = keyof typeof MODELS
@@ -42,24 +48,65 @@ export function useFitted(id: ModelId, width: number) {
   }, [scene, width])
 }
 
-export function Model({ id, width, position }: { id: ModelId; width: number; position?: [number, number, number] }) {
+type V3 = [number, number, number]
+
+export function Model({ id, width, position, rotation }: { id: ModelId; width: number; position?: V3; rotation?: V3 }) {
   const { object } = useFitted(id, width)
   return (
-    <group position={position}>
+    <group position={position} rotation={rotation}>
       <primitive object={object} />
     </group>
   )
 }
 
-// Tarta sobre tabla de madera (portada).
-export function CakeOnBoard({ cake = 'chocolate' as ModelId }) {
-  const board = useFitted('tabla', 2.9)
+// Tarta sobre tabla de madera (portada). La tarta se separa de la tabla con el scroll.
+export function useBoardHeight() {
+  return useFitted('tabla', 2.9).height
+}
+
+export function Board() {
+  const { object } = useFitted('tabla', 2.9)
+  return <primitive object={object} />
+}
+
+// Cesta de desayuno: cesta de mimbre con croissant, bollos y una manzana asomando.
+function Cesta() {
+  const basket = useFitted('cesta', 2)
+  const h = basket.height
   return (
     <group>
-      <primitive object={board.object} />
-      <Model id={cake} width={1.65} position={[0, board.height, 0]} />
+      <primitive object={basket.object} />
+      <Model id="bollos" width={1.25} position={[-0.15, h * 0.55, -0.2]} rotation={[0.15, 0.4, 0]} />
+      <Model id="croissant" width={1.3} position={[0.15, h * 0.72, 0.25]} rotation={[-0.25, -0.5, 0.1]} />
+      <Model id="manzana" width={0.42} position={[0.55, h * 0.78, -0.3]} />
     </group>
   )
 }
 
-Object.values(MODELS).forEach((url) => useGLTF.preload(url))
+// Limonada: jarra de cerámica con dos limones al lado.
+function Limonada() {
+  return (
+    <group>
+      <Model id="jarra" width={1.3} position={[-0.2, 0, 0]} rotation={[0, 0.6, 0]} />
+      <Model id="limon" width={0.5} position={[0.95, 0, 0.35]} rotation={[0, 0.3, 1.4]} />
+      <Model id="limon" width={0.46} position={[0.55, 0, 0.95]} rotation={[0.4, 1.2, 0]} />
+    </group>
+  )
+}
+
+export type ProductId = 'croissant' | 'bollos' | 'chocolate' | 'zanahoria' | 'cesta' | 'limonada' | 'te'
+
+const WIDTH: Record<Exclude<ProductId, 'cesta' | 'limonada'>, number> = {
+  croissant: 2.3,
+  bollos: 2.1,
+  chocolate: 2,
+  zanahoria: 2,
+  te: 2.8,
+}
+
+export function Product({ id }: { id: ProductId }) {
+  if (id === 'cesta') return <Cesta />
+  if (id === 'limonada') return <Limonada />
+  return <Model id={id} width={WIDTH[id]} />
+}
+

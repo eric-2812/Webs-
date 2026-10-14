@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { CAKES, cakePrice, DIA, estadoAhora, eur, HORARIO, SIZES, VITRINA, type CakeId, type Size } from './data'
+import { CAKES, cakePrice, CATEGORIES, DIA, estadoAhora, eur, HORARIO, SIZES, VITRINA, type CakeId, type Size } from './data'
 
 const HeroScene = lazy(() => import('./three/scenes'))
 const VitrinaScene = lazy(() => import('./three/scenes').then((m) => ({ default: m.VitrinaScene })))
+const CintaScene = lazy(() => import('./three/scenes').then((m) => ({ default: m.CintaScene })))
 const CakeScene = lazy(() => import('./three/scenes').then((m) => ({ default: m.CakeScene })))
 
 function StageFallback({ className }: { className: string }) {
@@ -24,6 +25,7 @@ function Header() {
         <span className="brand__sub">obrador · 1987</span>
       </a>
       <nav className="nav" aria-label="Principal">
+        <a href="#cinta">Del horno</a>
         <a href="#vitrina">La vitrina</a>
         <a href="#encargos">Encargos</a>
         <a href="#obrador">El obrador</a>
@@ -67,9 +69,61 @@ function Hero() {
         <figcaption className="handnote">
           Tarta de chocolate y fresas.
           <br />
-          Arrástrala para darle la vuelta.
+          Baja y verás.
         </figcaption>
       </figure>
+    </section>
+  )
+}
+
+/* ---------------- cinta: los productos desfilan con el scroll ---------------- */
+
+function Cinta() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    const el = document.getElementById('cinta')
+    if (!el) return
+    const onScroll = () => {
+      const r = el.getBoundingClientRect()
+      const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - window.innerHeight)))
+      setIdx(Math.round(p * (VITRINA.length - 1)))
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+  const p = VITRINA[idx]
+  return (
+    <section id="cinta" className="cinta" style={{ height: `${VITRINA.length * 75 + 40}vh` }}>
+      <div className="cinta__sticky">
+        <header className="cinta__head">
+          <p className="eyebrow">01 — Del horno a la vitrina</p>
+          <p className="cinta__count" aria-hidden>
+            {String(idx + 1).padStart(2, '0')} / {String(VITRINA.length).padStart(2, '0')}
+          </p>
+        </header>
+        <Suspense fallback={<StageFallback className="stage stage--cinta" />}>
+          <CintaScene items={VITRINA.map((v) => v.id)} label="Los productos del día pasan uno a uno al bajar por la página." />
+        </Suspense>
+        <div className="cinta__caption" aria-live="polite">
+          <p className="cinta__cat">{p.cat}</p>
+          <h2 className="cinta__name" key={p.id}>
+            {p.name}
+          </h2>
+          <p className="cinta__short">
+            {p.short} <span className="cinta__price">{eur(p.price)}</span>
+          </p>
+        </div>
+        <ol className="cinta__dots" aria-hidden>
+          {VITRINA.map((v, i) => (
+            <li key={v.id} className={i === idx ? 'is-on' : ''} />
+          ))}
+        </ol>
+      </div>
     </section>
   )
 }
@@ -82,37 +136,55 @@ function Vitrina() {
   return (
     <section id="vitrina" className="section vitrina">
       <header className="section__head">
-        <p className="eyebrow">01 — La vitrina de hoy</p>
+        <p className="eyebrow">02 — La vitrina de hoy</p>
         <h2 className="h2">Lo que sale del horno, se vende ese día. Lo que sobra, se dona a las cuatro.</h2>
       </header>
 
       <div className="vitrina__grid">
-        <ol className="menu" role="listbox" aria-label="Piezas de la vitrina">
-          {VITRINA.map((item, i) => (
-            <li
-              key={item.id}
-              role="option"
-              aria-selected={i === sel}
-              tabIndex={0}
-              className="menu__item"
-              onClick={() => setSel(i)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setSel(i)
-                }
-                if (e.key === 'ArrowDown') (e.currentTarget.nextElementSibling as HTMLElement | null)?.focus()
-                if (e.key === 'ArrowUp') (e.currentTarget.previousElementSibling as HTMLElement | null)?.focus()
-              }}
-            >
-              <span className="menu__name">{item.name}</span>
-              <span className="menu__dots" aria-hidden />
-              <span className="menu__price">
-                {eur(item.price)} <small>/ {item.unit}</small>
-              </span>
-            </li>
+        <div className="menu" role="listbox" aria-label="Piezas de la vitrina">
+          {CATEGORIES.map((cat) => (
+            <div key={cat} role="group" aria-labelledby={`cat-${cat}`} className="menu__group">
+              <p id={`cat-${cat}`} className="menu__cat">
+                {cat}
+              </p>
+              {VITRINA.map((item, i) =>
+                item.cat !== cat ? null : (
+                  <div
+                    key={item.id}
+                    role="option"
+                    aria-selected={i === sel}
+                    tabIndex={i === sel ? 0 : -1}
+                    className="menu__item"
+                    onClick={() => setSel(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSel(i)
+                      }
+                      const dir = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
+                      if (dir) {
+                        e.preventDefault()
+                        const next = (i + dir + VITRINA.length) % VITRINA.length
+                        setSel(next)
+                        const opts = e.currentTarget.closest('[role=listbox]')?.querySelectorAll<HTMLElement>('[role=option]')
+                        opts?.[next]?.focus()
+                      }
+                    }}
+                  >
+                    <span className="menu__num" aria-hidden>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="menu__name">{item.name}</span>
+                    <span className="menu__dots" aria-hidden />
+                    <span className="menu__price">
+                      {eur(item.price)} <small>/ {item.unit}</small>
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
           ))}
-        </ol>
+        </div>
 
         <div className="vitrina__stage">
           <Suspense fallback={<StageFallback className="stage stage--vitrina" />}>
@@ -204,7 +276,7 @@ function Encargos() {
   return (
     <section id="encargos" className="section encargos">
       <header className="section__head">
-        <p className="eyebrow">02 — Encargos</p>
+        <p className="eyebrow">03 — Encargos</p>
         <h2 className="h2">Encarga tu tarta entera. Elige cuál y para cuántos; del resto nos encargamos nosotros.</h2>
       </header>
 
@@ -303,7 +375,7 @@ function Obrador() {
   return (
     <section id="obrador" className="section obrador">
       <header className="section__head">
-        <p className="eyebrow">03 — Un día en el obrador</p>
+        <p className="eyebrow">04 — Un día en el obrador</p>
         <h2 className="h2">Somos cinco. Empezamos cuando la ciudad todavía duerme.</h2>
       </header>
       <ol className="day">
@@ -335,7 +407,7 @@ function Visita() {
   return (
     <section id="visita" className="section visita">
       <header className="section__head">
-        <p className="eyebrow">04 — Visítanos</p>
+        <p className="eyebrow">05 — Visítanos</p>
         <h2 className="h2">Detrás del Mercado Central. Si huele a mantequilla, vas bien.</h2>
       </header>
       <div className="visita__grid">
@@ -374,6 +446,7 @@ export default function App() {
       <Header />
       <main>
         <Hero />
+        <Cinta />
         <Vitrina />
         <Encargos />
         <Obrador />

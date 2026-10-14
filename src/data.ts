@@ -1,8 +1,12 @@
-import type { PieceId } from './three/scenes'
+import type { ProductId } from './three/models'
+
+export type Category = 'Bollería' | 'Tartas' | 'Para llevar'
 
 export type Piece = {
-  id: PieceId
+  id: ProductId
+  cat: Category
   name: string
+  short: string
   note: string
   price: number
   unit: string
@@ -13,7 +17,9 @@ export type Piece = {
 export const VITRINA: Piece[] = [
   {
     id: 'croissant',
+    cat: 'Bollería',
     name: 'Croissant de mantequilla',
+    short: 'Tres días de masa, 27 capas.',
     note: 'Tres días de masa: se lamina el lunes y se hornea el miércoles. 27 capas, mantequilla de Soria.',
     price: 2.1,
     unit: 'ud.',
@@ -21,8 +27,21 @@ export const VITRINA: Piece[] = [
     allergens: ['gluten', 'lácteos', 'huevo'],
   },
   {
+    id: 'bollos',
+    cat: 'Bollería',
+    name: 'Bollos de leche',
+    short: 'Tiernos, poco dulces, para mojar.',
+    note: 'Masa de leche entera con un punto de azahar. Salen a las seis y media; los de la merienda, a las cinco.',
+    price: 3.2,
+    unit: 'bolsa de 3',
+    soldOutBy: '12:00',
+    allergens: ['gluten', 'lácteos', 'huevo'],
+  },
+  {
     id: 'chocolate',
+    cat: 'Tartas',
     name: 'Tarta de chocolate y fresas',
+    short: 'Ganache al 70 % y fresas de Huelva.',
     note: 'Bizcocho de cacao, ganache al 70 % y fresas de Huelva puestas a mano justo antes de abrir.',
     price: 4.6,
     unit: 'porción',
@@ -31,7 +50,9 @@ export const VITRINA: Piece[] = [
   },
   {
     id: 'zanahoria',
+    cat: 'Tartas',
     name: 'Carrot cake',
+    short: 'La que más repite la gente.',
     note: 'Zanahoria rallada esa mañana, nueces tostadas y crema de queso poco dulce. La que más repite la gente.',
     price: 4.4,
     unit: 'porción',
@@ -39,8 +60,32 @@ export const VITRINA: Piece[] = [
     allergens: ['gluten', 'lácteos', 'huevo', 'frutos secos'],
   },
   {
+    id: 'cesta',
+    cat: 'Para llevar',
+    name: 'Cesta de desayuno',
+    short: 'Para dos. Encárgala la víspera.',
+    note: 'Dos croissants, tres bollos de leche, mermelada de la casa y fruta de temporada. La cesta es tuya; si nos la devuelves, 3 € de descuento en la siguiente.',
+    price: 16,
+    unit: 'para dos',
+    soldOutBy: 'por encargo',
+    allergens: ['gluten', 'lácteos', 'huevo'],
+  },
+  {
+    id: 'limonada',
+    cat: 'Para llevar',
+    name: 'Limonada de la casa',
+    short: 'Limones de Alzira, poco azúcar.',
+    note: 'Limones de Alzira exprimidos esa mañana, poco azúcar y hierbabuena del patio. Jarra de un litro; trae la tuya y te la llenamos.',
+    price: 6.5,
+    unit: 'litro',
+    soldOutBy: '18:00',
+    allergens: ['—'],
+  },
+  {
     id: 'te',
+    cat: 'Para llevar',
     name: 'Merienda en la barra',
+    short: 'Té en tetera y una pieza del día.',
     note: 'Té en tetera de verdad y una pieza del día. De 17:00 a 19:00, mientras queden sillas (hay seis).',
     price: 5.5,
     unit: 'persona',
@@ -48,6 +93,8 @@ export const VITRINA: Piece[] = [
     allergens: ['según la pieza'],
   },
 ]
+
+export const CATEGORIES: Category[] = ['Bollería', 'Tartas', 'Para llevar']
 
 export type CakeId = 'chocolate' | 'zanahoria'
 export type Size = 'pequena' | 'mediana' | 'grande'
