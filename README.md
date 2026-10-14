@@ -2,6 +2,8 @@
 
 Web de una pastelería ficticia de Valencia, con React + Vite y escenas 3D en React Three Fiber.
 
+**En vivo:** https://eric-2812.github.io/Webs-/ — se vuelve a desplegar sola en cada push (`.github/workflows/pages.yml` → rama `gh-pages`).
+
 - **Portada**: tarta de chocolate y fresas sobre tabla de madera; se gira arrastrando.
 - **La vitrina**: carta del día; al elegir una pieza cambia el modelo 3D.
 - **Encargos**: eliges tarta y tamaño, la vista 3D se actualiza y el formulario muestra un resguardo (sin backend todavía).
